@@ -18,6 +18,12 @@
 #include "stdio.h"
 #include "string.h"
 
+/* FreeRTOS.org includes. */
+#include "FreeRTOS.h"
+#include "task.h"
+/* Demo includes.
+#include "basic_io.h" */
+
 // CodeRed - added #define extern on next line (else variables
 // not defined). This has been done due to include the .h files 
 // rather than the .c files as in the original version of easyweb.
@@ -48,6 +54,32 @@
 unsigned int aaPagecounter = 0;
 unsigned int adcValue = 0;
 static uint8_t buf[10];
+
+// Global variables
+uint32_t lux = 0;
+int32_t xoff = 0;
+int32_t yoff = 0;
+int32_t zoff = 0;
+
+int8_t x = 0;
+int8_t y = 0;
+int8_t z = 0;
+
+uint8_t joy = -1;
+uint8_t rotation = -1;
+
+oled_color_t backgroundColor = OLED_COLOR_BLACK;
+oled_color_t textColor = OLED_COLOR_WHITE;
+
+// Tasks
+void mainTask( void *pvParameters );
+void httpTask( void *pvParameters );
+void accTask( void *pvParameters );
+void lightTask( void *pvParameters );
+
+// Handlers
+xTaskHandle lightTaskHandle;
+xTaskHandle accTaskHandle;
 
 static void intToString(int value, uint8_t* pBuf, uint32_t len, uint32_t base) {
 	static const char* pAscii = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -169,24 +201,14 @@ void showWelcomeScreen(oled_color_t backgroundColor, oled_color_t textColor) {
 	drawDisplay("EC 020 - P9", 0, backgroundColor, textColor, 2);
 }
 
-int main(void) {
-	uint32_t lux = 0;
-    int32_t xoff = 0;
-    int32_t yoff = 0;
-    int32_t zoff = 0;
+void invertDispalyColor() {
+	oled_color_t temp = backgroundColor;
+	backgroundColor = textColor;
+	textColor = temp;
+	oled_clearScreen(backgroundColor);
+}
 
-    int8_t x = 0;
-    int8_t y = 0;
-    int8_t z = 0;
-
-	uint8_t joy = -1;
-	uint8_t lastJoy = -1;
-	uint8_t rotation = -1;
-	uint8_t lastRotation = -1;
-
-	oled_color_t backgroundColor = OLED_COLOR_BLACK;
-	oled_color_t textColor = OLED_COLOR_WHITE;
-
+void initialize() {
 	init_i2c();
 	init_ssp();
 
@@ -197,10 +219,10 @@ int main(void) {
 	acc_init();
 	light_init();
 
-    acc_read(&x, &y, &z);
-    xoff = 0-x;
-    yoff = 0-y;
-    zoff = 64-z;
+	acc_read(&x, &y, &z);
+	xoff = 0-x;
+	yoff = 0-y;
+	zoff = 64-z;
 
 	light_enable();
 	light_setRange(LIGHT_RANGE_4000);
@@ -211,56 +233,102 @@ int main(void) {
 
 	oled_clearScreen(backgroundColor);
 	showWelcomeScreen(backgroundColor, textColor);
-	while (1)
+}
+
+void createTasks() {
+	xTaskCreate( mainTask, "Main Task", 240, NULL, 1, NULL );
+	xTaskCreate( httpTask, "Http Task", 240, NULL, 1, NULL );
+	xTaskCreate( accTask, "Acc Task", 240, NULL, 1, &accTaskHandle );
+	xTaskCreate( lightTask, "Light Task", 240, NULL, 1, &lightTaskHandle );
+	vTaskStartScheduler();
+}
+
+int main(void) {
+	initialize();
+	createTasks();
+}
+
+void mainTask( void *pvParameters )
+{
+	const portTickType xDelay100ms = 100 / portTICK_RATE_MS;
+	for( ;; )
 	{
+		// vPrintString( "Main task is running\n" );
 		/* Joystick */
 		joy = joystick_read();
 		/* Rotary switch */
 		rotation = rotary_read();
 
-		if (rotation != lastRotation && rotation != ROTARY_WAIT) {
-			oled_color_t temp = backgroundColor;
-			backgroundColor = textColor;
-			textColor = temp;
-			lastRotation = rotation;
-			oled_clearScreen(backgroundColor);
+		if (rotation != ROTARY_WAIT) {
+			invertDispalyColor();
 		}
 
-		if ((joy & JOYSTICK_LEFT) != 0 || lastJoy == JOYSTICK_LEFT) {
-	        /* Accelerometer */
-	        acc_read(&x, &y, &z);
-	        x = x+xoff;
-	        y = y+yoff;
-	        z = z+zoff;
-	        /* clearing if changed sides */
-	        if(lastJoy != JOYSTICK_LEFT) {
-	        	oled_clearScreen(backgroundColor);
-	        }
-			/* Saving last value */
-			lastJoy = JOYSTICK_LEFT;
-			/* Showing values */
-			drawDisplay("X Pos: ", x, backgroundColor, textColor, 1);
-			drawDisplay("Y Pos: ", y, backgroundColor, textColor, 2);
-			drawDisplay("Z Pos: ", z, backgroundColor, textColor, 3);
+		if ((joy & JOYSTICK_LEFT) != 0) {
+			// acc task
+			vTaskSuspend(lightTaskHandle);
+			vTaskResume(accTaskHandle);
 		}
 
-		if ((joy & JOYSTICK_RIGHT) != 0 || lastJoy == JOYSTICK_RIGHT) {
-			/* light */
-			lux = light_read();
-	        /* clearing if changed sides */
-	        if(lastJoy != JOYSTICK_RIGHT) {
-	        	oled_clearScreen(backgroundColor);
-	        }
-			/* Saving last value */
-			lastJoy = JOYSTICK_RIGHT;
-			/* Showing values */
-			drawDisplay("Light: ", lux, backgroundColor, textColor, 1);
+		if ((joy & JOYSTICK_RIGHT) != 0) {
+			// light task
+			vTaskSuspend(lightTaskHandle);
+			vTaskResume(accTaskHandle);
 		}
+
+		vTaskDelay( xDelay100ms );
+	}
+}
+
+void accTask ( void *pvParameters ) {
+	const portTickType xDelay100ms = 100 / portTICK_RATE_MS;
+	for( ;; )
+	{
+		// vPrintString( "Acc task is running\n" );
+		/* Accelerometer */
+		acc_read(&x, &y, &z);
+		x = x+xoff;
+		y = y+yoff;
+		z = z+zoff;
+		/* Clearing display before drawing */
+		oled_clearScreen(backgroundColor);
+		/* Showing values */
+		drawDisplay("X Pos: ", x, backgroundColor, textColor, 1);
+		drawDisplay("Y Pos: ", y, backgroundColor, textColor, 2);
+		drawDisplay("Z Pos: ", z, backgroundColor, textColor, 3);
+
+		vTaskDelay( xDelay100ms );
+	}
+}
+
+void lightTask ( void *pvParameters ) {
+	const portTickType xDelay100ms = 100 / portTICK_RATE_MS;
+	for( ;; )
+	{
+		// vPrintString( "Light task is running\n" );
+
+		/* light */
+		lux = light_read();
+		/* Clearing display before drawing */
+		oled_clearScreen(backgroundColor);
+		/* Showing values */
+		drawDisplay("Light: ", lux, backgroundColor, textColor, 1);
+
+		vTaskDelay( xDelay100ms );
+	}
+}
+
+void httpTask( void *pvParameters ) {
+	const portTickType xDelay100ms = 100 / portTICK_RATE_MS;
+	for( ;; )
+	{
+		// vPrintString( "Http task is running\n" );
 
 		if (!(SocketStatus & SOCK_ACTIVE))
 			TCPPassiveOpen(); // listen for incoming TCP-connection
 		DoNetworkStuff(); // handle network and easyWEB-stack
 		HTTPServer();
+
+		vTaskDelay( xDelay100ms );
 	}
 }
 
@@ -348,25 +416,61 @@ void InsertDynamicValues(void) {
 			if (*(Key + 1) == 'D')
 				if (*(Key + 3) == '%')
 					switch (*(Key + 2)) {
-					case '8':                                 // "AD8%"?
+					case '1':                                 // "AD8%"?
 					{
-						sprintf(NewKey, "%04d", GetAD7Val()); // insert pseudo-ADconverter value
+						sprintf(NewKey, "%04d", lux); // insert pseudo-ADconverter value
 						memcpy(Key, NewKey, 4);
 						break;
 					}
-					case '7':                                 // "AD7%"?
+					case '2':                                 // "AD7%"?
 					{
-						sprintf(NewKey, "%3u", adcValue); // copy saved value from previous read
+						sprintf(NewKey, "%04d", x); // copy saved value from previous read
 						memcpy(Key, NewKey, 3);
 						break;
 					}
-					case '1':                                 // "AD1%"?
+					case '3':                                 // "AD1%"?
 					{
-						sprintf(NewKey, "%4u", ++aaPagecounter); // increment and insert page counter
+						sprintf(NewKey, "%04d", y); // increment and insert page counter
+						memcpy(Key, NewKey, 4);
+						break;
+					}
+					case '4':                                 // "AD1%"?
+					{
+						sprintf(NewKey, "%04d", z); // increment and insert page counter
 						memcpy(Key, NewKey, 4);
 						break;
 					}
 				}
 		Key++;
 	}
+}
+
+
+void vApplicationMallocFailedHook( void )
+{
+	/* This function will only be called if an API call to create a task, queue
+	or semaphore fails because there is too little heap RAM remaining. */
+	for( ;; );
+}
+/*-----------------------------------------------------------*/
+
+void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed char *pcTaskName )
+{
+	/* This function will only be called if a task overflows its stack.  Note
+	that stack overflow checking does slow down the context switch
+	implementation. */
+	for( ;; );
+}
+
+/*-----------------------------------------------------------*/
+
+void vApplicationIdleHook( void )
+{
+	/* This example does not use the idle hook to perform any processing. */
+}
+/*-----------------------------------------------------------*/
+
+void vApplicationTickHook( void )
+{
+	/* This example does not use the tick hook to perform any processing. */
 }

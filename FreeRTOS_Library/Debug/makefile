@@ -8,7 +8,8 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include src/subdir.mk
+-include portable/subdir.mk
+-include demo_code/subdir.mk
 -include subdir.mk
 -include objects.mk
 
@@ -23,25 +24,25 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: easyweb.axf
+all: libFreeRTOS_Library.a
 
 # Tool invocations
-easyweb.axf: $(OBJS) $(USER_OBJS)
+libFreeRTOS_Library.a: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: MCU Linker'
-	arm-none-eabi-gcc -nostdlib -L"C:\Users\lucas\Documents\Projetos\SystemAtic_EC020\FreeRTOS_Library\Debug" -L"C:\Users\lucas\Documents\Projetos\SystemAtic_EC020\Lib_CMSISv1p30_LPC17xx\Debug" -L"C:\Users\lucas\Documents\Projetos\SystemAtic_EC020\Lib_EaBaseBoard\Debug" -L"C:\Users\lucas\Documents\Projetos\SystemAtic_EC020\Lib_MCU\Debug" -Xlinker --gc-sections -Xlinker -Map=easyweb.map -mcpu=cortex-m3 -mthumb -T "easyweb_Debug.ld" -o "easyweb.axf" $(OBJS) $(USER_OBJS) $(LIBS)
+	@echo 'Invoking: MCU Archiver'
+	arm-none-eabi-ar -r  "libFreeRTOS_Library.a" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build
 
 # Other Targets
 clean:
-	-$(RM) $(OBJS)$(C_DEPS)$(EXECUTABLES) easyweb.axf
+	-$(RM) $(OBJS)$(C_DEPS)$(ARCHIVES) libFreeRTOS_Library.a
 	-@echo ' '
 
 post-build:
 	-@echo 'Performing post-build steps'
-	-arm-none-eabi-size easyweb.axf; # arm-none-eabi-objdump -h -S easyweb.axf >easyweb.lss
+	-arm-none-eabi-size libFreeRTOS_Library.a ; # arm-none-eabi-objdump -h -S libFreeRTOS_Library.a >libFreeRTOS_Library.lss
 	-@echo ' '
 
 .PHONY: all clean dependents

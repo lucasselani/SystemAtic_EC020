@@ -36,6 +36,9 @@
 								<option id="gnu.c.compiler.option.preprocessor.preprocess.616779157" name="Preprocess only (-E)" superClass="gnu.c.compiler.option.preprocessor.preprocess"/>
 								<option id="gnu.c.compiler.option.preprocessor.undef.symbol.1377898486" name="Undefined symbols (-U)" superClass="gnu.c.compiler.option.preprocessor.undef.symbol"/>
 								<option id="gnu.c.compiler.option.include.paths.399463709" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FreeRTOS_Library/demo_code}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FreeRTOS_Library/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FreeRTOS_Library/portable}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Lib_CMSISv1p30_LPC17xx/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Lib_EaBaseBoard/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Lib_MCU/inc}&quot;"/>
@@ -80,11 +83,13 @@
 								</option>
 								<option id="com.crt.advproject.link.gcc.hdrlib.1500791585" name="Use C library" superClass="com.crt.advproject.link.gcc.hdrlib" value="com.crt.advproject.gcc.link.hdrlib.newlib.semihost" valueType="enumerated"/>
 								<option id="gnu.c.link.option.libs.317954114" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
+									<listOptionValue builtIn="false" value="FreeRTOS_Library"/>
 									<listOptionValue builtIn="false" value="Lib_CMSISv1p30_LPC17xx"/>
 									<listOptionValue builtIn="false" value="Lib_EaBaseBoard"/>
 									<listOptionValue builtIn="false" value="Lib_MCU"/>
 								</option>
 								<option id="gnu.c.link.option.paths.1794865162" name="Library search path (-L)" superClass="gnu.c.link.option.paths" valueType="libPaths">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FreeRTOS_Library/Debug}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Lib_CMSISv1p30_LPC17xx/Debug}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Lib_EaBaseBoard/Debug}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Lib_MCU/Debug}&quot;"/>
@@ -101,7 +106,7 @@
 								<option id="gnu.c.link.option.defname.2139907478" name="DEF file name (-Wl,--output-def=)" superClass="gnu.c.link.option.defname"/>
 								<option id="com.crt.advproject.link.config.1836730478" name="%crt.mcu.configname" superClass="com.crt.advproject.link.config"/>
 								<option id="com.crt.advproject.link.store.885486934" name="%crt.mcu.storename" superClass="com.crt.advproject.link.store"/>
-								<option id="com.crt.advproject.link.gcc.multicore.slave.1630348579" superClass="com.crt.advproject.link.gcc.multicore.slave"/>
+								<option id="com.crt.advproject.link.gcc.multicore.slave.1630348579" name="Multicore slave" superClass="com.crt.advproject.link.gcc.multicore.slave"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.582511591" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -662,4 +667,5 @@
 			<resource resourceType="PROJECT" workspacePath="/easyweb"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>

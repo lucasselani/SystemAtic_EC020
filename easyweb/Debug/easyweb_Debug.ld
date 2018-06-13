@@ -4,7 +4,7 @@
  * (c) NXP Semiconductors 2013-2018
  * Generated linker script file for LPC1768
  * Created from generic_c.ld (LPCXpresso v6.1 (4 [Build 194] [2014-01-15] ))
- * By LPCXpresso v6.1.4 [Build 194] [2014-01-15]  on Mon Apr 09 20:59:19 BRT 2018
+ * By LPCXpresso v6.1.4 [Build 194] [2014-01-15]  on Wed Jun 13 18:03:44 BRT 2018
  */
 
 

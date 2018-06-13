@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>easyweb</name>
+	<name>FreeRTOS_Library</name>
 	<comment></comment>
 	<projects>
-		<project>FreeRTOS_Library</project>
-		<project>Lib_CMSISv1p30_LPC17xx</project>
-		<project>Lib_EaBaseBoard</project>
-		<project>Lib_MCU</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
@@ -35,7 +31,7 @@
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildLocation</key>
-					<value>${workspace_loc:/RDB1768cmsis_UART/Debug}</value>
+					<value>${workspace_loc:/FreeRTOS_Library/Debug}</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.cleanBuildTarget</key>
@@ -78,8 +74,8 @@
 		</buildCommand>
 	</buildSpec>
 	<natures>
-		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
-		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.core.cnature</nature>
+		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
+		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
 </projectDescription>
