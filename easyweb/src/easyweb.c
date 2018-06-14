@@ -21,8 +21,6 @@
 /* FreeRTOS.org includes. */
 #include "FreeRTOS.h"
 #include "task.h"
-/* Demo includes.
-#include "basic_io.h" */
 
 // CodeRed - added #define extern on next line (else variables
 // not defined). This has been done due to include the .h files 
@@ -50,6 +48,8 @@
 #include "joystick.h"
 #include "rotary.h"
 
+const portTickType xDelay100ms = 100 / portTICK_RATE_MS;
+
 // CodeRed - added for use in dynamic side of web page
 unsigned int aaPagecounter = 0;
 unsigned int adcValue = 0;
@@ -65,14 +65,17 @@ int8_t x = 0;
 int8_t y = 0;
 int8_t z = 0;
 
-uint8_t joy = -1;
-uint8_t rotation = -1;
+uint8_t joy = -2;
+uint8_t lastJoy = -2;
+uint8_t rotation = -2;
+uint8_t lastRotation = -2;
 
 oled_color_t backgroundColor = OLED_COLOR_BLACK;
 oled_color_t textColor = OLED_COLOR_WHITE;
 
 // Tasks
 void mainTask( void *pvParameters );
+void testTask ( void *pvParameters );
 void httpTask( void *pvParameters );
 void accTask( void *pvParameters );
 void lightTask( void *pvParameters );
@@ -231,104 +234,124 @@ void initialize() {
 	HTTPStatus = 0; // clear HTTP-server's flag register
 	TCPLocalPort = TCP_PORT_HTTP; // set port we want to listen to
 
+
 	oled_clearScreen(backgroundColor);
 	showWelcomeScreen(backgroundColor, textColor);
 }
 
 void createTasks() {
-	xTaskCreate( mainTask, "Main Task", 240, NULL, 1, NULL );
-	xTaskCreate( httpTask, "Http Task", 240, NULL, 1, NULL );
-	xTaskCreate( accTask, "Acc Task", 240, NULL, 1, &accTaskHandle );
-	xTaskCreate( lightTask, "Light Task", 240, NULL, 1, &lightTaskHandle );
-	vTaskStartScheduler();
+
+	//xTaskCreate( httpTask, "Http Task", 240, NULL, 1, NULL );
+	xTaskCreate( accTask, "Acc Task", 400, NULL, 1, &accTaskHandle );
+	xTaskCreate( lightTask, "Light Task", 400, NULL, 1, &lightTaskHandle );
+
 }
 
 int main(void) {
 	initialize();
 	createTasks();
+	xTaskCreate( mainTask, "Main Task", 400, NULL, 1, NULL );
+	printf("Main task created\n");
+	vTaskStartScheduler();
+	printf("STACKOVERFLOW");
+    /* If all is well we will never reach here as the scheduler will now be
+    running the tasks.  If we do reach here then it is likely that there was
+    insufficient heap memory available for a resource to be created. */
+	for( ;; );
+	return 0;
+}
+
+void testTask( void *pvParameters) {
+	for(;;) {
+		printf("TESTE");
+		vTaskDelay(xDelay100ms);
+	}
 }
 
 void mainTask( void *pvParameters )
 {
-	const portTickType xDelay100ms = 100 / portTICK_RATE_MS;
 	for( ;; )
 	{
-		// vPrintString( "Main task is running\n" );
+		printf("Main task is running\n");
 		/* Joystick */
 		joy = joystick_read();
 		/* Rotary switch */
 		rotation = rotary_read();
 
-		if (rotation != ROTARY_WAIT) {
-			invertDispalyColor();
+		if (rotation != lastRotation && rotation != ROTARY_WAIT) {
+			oled_color_t temp = backgroundColor;
+			backgroundColor = textColor;
+			textColor = temp;
+			lastRotation = rotation;
+			oled_clearScreen(backgroundColor);
 		}
 
-		if ((joy & JOYSTICK_LEFT) != 0) {
+		if (((joy & JOYSTICK_LEFT) != 0) && lastJoy != JOYSTICK_LEFT) {
 			// acc task
-			vTaskSuspend(lightTaskHandle);
-			vTaskResume(accTaskHandle);
+			printf("Changing sides\n");
+			oled_clearScreen(backgroundColor);
+			lastJoy = JOYSTICK_LEFT;
 		}
 
-		if ((joy & JOYSTICK_RIGHT) != 0) {
+		if (((joy & JOYSTICK_RIGHT) != 0) && lastJoy != JOYSTICK_RIGHT) {
 			// light task
-			vTaskSuspend(lightTaskHandle);
-			vTaskResume(accTaskHandle);
+			printf("Changing sides\n");
+			oled_clearScreen(backgroundColor);
+			lastJoy = JOYSTICK_RIGHT;
 		}
 
-		vTaskDelay( xDelay100ms );
+		vTaskDelay(xDelay100ms);
 	}
 }
 
 void accTask ( void *pvParameters ) {
-	const portTickType xDelay100ms = 100 / portTICK_RATE_MS;
 	for( ;; )
 	{
-		// vPrintString( "Acc task is running\n" );
 		/* Accelerometer */
 		acc_read(&x, &y, &z);
 		x = x+xoff;
 		y = y+yoff;
 		z = z+zoff;
-		/* Clearing display before drawing */
-		oled_clearScreen(backgroundColor);
-		/* Showing values */
-		drawDisplay("X Pos: ", x, backgroundColor, textColor, 1);
-		drawDisplay("Y Pos: ", y, backgroundColor, textColor, 2);
-		drawDisplay("Z Pos: ", z, backgroundColor, textColor, 3);
-
-		vTaskDelay( xDelay100ms );
-	}
-}
-
-void lightTask ( void *pvParameters ) {
-	const portTickType xDelay100ms = 100 / portTICK_RATE_MS;
-	for( ;; )
-	{
-		// vPrintString( "Light task is running\n" );
-
-		/* light */
-		lux = light_read();
-		/* Clearing display before drawing */
-		oled_clearScreen(backgroundColor);
-		/* Showing values */
-		drawDisplay("Light: ", lux, backgroundColor, textColor, 1);
-
-		vTaskDelay( xDelay100ms );
-	}
-}
-
-void httpTask( void *pvParameters ) {
-	const portTickType xDelay100ms = 100 / portTICK_RATE_MS;
-	for( ;; )
-	{
-		// vPrintString( "Http task is running\n" );
-
+		if(lastJoy == JOYSTICK_LEFT) {
+			printf( "Acc task is running\n" );
+			/* Showing values */
+			drawDisplay("X Pos: ", x, backgroundColor, textColor, 1);
+			drawDisplay("Y Pos: ", y, backgroundColor, textColor, 2);
+			drawDisplay("Z Pos: ", z, backgroundColor, textColor, 3);
+		}
 		if (!(SocketStatus & SOCK_ACTIVE))
 			TCPPassiveOpen(); // listen for incoming TCP-connection
 		DoNetworkStuff(); // handle network and easyWEB-stack
 		HTTPServer();
 
-		vTaskDelay( xDelay100ms );
+		vTaskDelay(xDelay100ms);
+	}
+}
+
+void lightTask ( void *pvParameters ) {
+	for( ;; )
+	{
+		/* light */
+		lux = light_read();
+		if(lastJoy == JOYSTICK_RIGHT) {
+			printf( "Light task is running\n" );
+			/* Showing values */
+			drawDisplay("Light: ", lux, backgroundColor, textColor, 1);
+		}
+		vTaskDelay(xDelay100ms);
+	}
+}
+
+void httpTask( void *pvParameters ) {
+	for( ;; )
+	{
+		// vPrintString( "Http task is running\n" );
+		if (!(SocketStatus & SOCK_ACTIVE))
+			TCPPassiveOpen(); // listen for incoming TCP-connection
+		DoNetworkStuff(); // handle network and easyWEB-stack
+		HTTPServer();
+
+		vTaskDelay(xDelay100ms);
 	}
 }
 
